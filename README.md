@@ -1,73 +1,74 @@
 # Screeps World Script (Boom) 💥
 
-A sophisticated, automated script for the game [Screeps](https://screeps.com/), designed to manage colony growth, resource gathering, and creep evolution effectively.
+สคริปต์อัตโนมัติอัจฉริยะสำหรับเกม [Screeps](https://screeps.com/) ที่ออกแบบมาเพื่อบริหารจัดการอาณานิคม ขยายฐาน และวิวัฒนาการ Creep ให้เก่งขึ้นโดยอัตโนมัติ
 
-## 🌟 Key Features
+## 🌟 ฟีเจอร์หลัก (Key Features)
 
-### 1. 🧠 Intelligent Spawning System
-- **Smart Body Building**: Creeps are not just created with fixed bodies. The system dynamically generates the largest possible creep body based on the room's current energy capacity (`prototype.spawn.js`).
-    - **Harvesters**: Maximize `WORK` parts for mining speed while maintaining movement speed.
-    - **Workers**: Balanced `WORK`/`CARRY`/`MOVE` ratios.
-- **Auto-Recycle & Evolution**: The colony automatically upgrades its workforce! When the room is fully saturated with energy and has a stable population, the Spawner identifies the weakest creeps and recycles them to accidentally birth stronger, more efficient versions (`module.spawn_manager.js`).
-- **Emergency Recovery**: If population drops critically (e.g., 0 Harvesters), the system enters emergency mode to spawn cheap, essential creeps immediately.
+### 1. 🧠 ระบบเกิดอัจฉริยะ (Intelligent Spawning System)
+- **Smart Body Building**: Creep ไม่ได้เกิดมาตัวเท่ากันหมดอีกต่อไป! ระบบจะคำนวณสร้างร่างกายที่ **ใหญ่ที่สุดเท่าที่จะทำได้** ตามจำนวน Energy ที่ห้องนั้นมี (`prototype.spawn.js`)
+    - **Harvesters (นักขุด)**: เน้นชิ้นส่วน `WORK` เยอะๆ เพื่อขุดไว แต่ยังคงความเร็วในการเดินด้วย `MOVE`
+    - **Workers (คนงาน)**: ปรับสมดุล `WORK`/`CARRY`/`MOVE` ให้ทำงานได้คล่องตัว
+- **Auto-Recycle & Evolution (วิวัฒนาการอัตโนมัติ)**:
+    - เมื่อห้องมีพลังงานเต็มเปี่ยมและประชากรครบตามเป้า ระบบจะเริ่มสแกนหา **"จุดอ่อน"** หรือ Creep ที่ตัวเล็กที่สุด
+    - ถ้าเจอตัวที่อ่อนแอเกินไป มันจะถูกสั่งให้เดินกลับไป **Recycle** ตัวเอง เพื่อเปิดทางให้ระบบสร้าง **ตัวใหม่ที่เก่งกว่า** ออกมาแทนที่ทันที (`module.spawn_manager.js`)
+- **Emergency Mode**: ถ้านักขุดตายหมดจนวิกฤต ระบบจะตัดเข้าโหมดฉุกเฉิน สร้างตัวราคาถูกออกมาทำงานกู้สถานการณ์ทันที
 
-### 2. 🚦 Smart Creep AI
-- **Harvester Yielding**: Harvesters are polite! After filling up with energy, if they are blocking an energy source, they will actively scanning their surroundings to step aside (yield) to a free spot, allowing other creeps to access the source (`role.harvester.js`).
-- **Robust Pathfinding**: Creeps use a fallback navigation system. If `findClosestByPath` fails (due to blockage), they switch to `findClosestByRange` to blindly move towards their goal to avoid getting stuck in an idle state.
-- **Self-Destruct**: Creeps marked for recycling via the Auto-Recycle system will automatically return to spawn and surrender their resources/life to the colony.
+### 2. 🚦 AI ที่ชาญฉลาด (Smart Creep AI)
+- **Harvester Yielding (ระบบหลีกทาง)**: Harvester มีมารยาท! เมื่อขุดพลังงานจนเต็มแล้วและรู้ตัวว่ายืนขวางบ่อพลังงานอยู่ มันจะสแกนหาที่ว่างรอบตัว 8 ทิศ แล้วเดินหลบออกไปให้เพื่อนคนอื่นเข้ามาขุดต่อ (`role.harvester.js`)
+- **Robust Pathfinding (ระบบเดินงาน)**: ถ้าใช้ `findClosestByPath` แล้วหาทางไม่เจอ (เพราะเพื่อนขวางหรือทางตัน) ระบบจะปรับไปใช้ `findClosestByRange` เพื่อให้ Creep พยายามเดินเข้าไปใกล้เป้าหมายที่สุดแทนที่จะยืนนิ่งเฉยๆ
+- **Self-Destruct**: Creep ที่ถูกระบุให้ Recycle จะเดินกลับบ้านเองพร้อมส่งสัญญาณลาตาย `♻️ bye`
 
-### 3. ⚙️ Centralized Configuration
-- **`config.js`**: Control the entire colony from one file.
-    - Define target population for each role per room.
-    - Set up Long Distance Mining/Remote Harvesting operations.
-    - Configure Auto-Build layouts (Roads, Containers, Extensions).
+### 3. ⚙️ ตั้งค่าจากจุดเดียว (Centralized Configuration)
+- **`config.js`**: ไฟล์เดียวคุมทั้งอาณานิคม
+    - กำหนดจำนวนประชากรแต่ละ Role ในแต่ละห้อง
+    - ตั้งค่าทีมขุดระยะไกล (Long Distance Mining)
+    - กำหนด Lay out สิ่งก่อสร้าง (Roads, Containers, Extensions)
 
 ---
 
-## 📂 File Structure & Modules
+## 📂 โครงสร้างไฟล์ (File Structure)
 
 ### Core
-- **`main.js`**: The heartbeat of the script. Handles memory cleanup, runs creep logic, and executes room-level managers (Towers, Spawns).
-- **`config.js`**: Configuration settings for rooms and relationships.
+- **`main.js`**: หัวใจหลักของสคริปต์ จัดการ Memory, สั่งงาน Creep ทุกตัว และรัน Manager ต่างๆ
+- **`config.js`**: ศูนย์รวมการตั้งค่าทั้งหมดของอาณานิคม
 
 ### Managers & Modules
-- **`module.spawn_manager.js`**: The brain of the colony. Decides *who* to spawn and *when*. Handles the **Auto-Recycle** logic.
-- **`module.towers.js`**: Controls defensive and repair logic for towers.
-- **`module.architect.js`**: Automates construction of base structures based on predefined positions in config.
-- **`module.cleanup.js`**: Cleans up memory of deceased creeps to save CPU.
+- **`module.spawn_manager.js`**: มันสมองของฐาน ตัดสินใจว่าจะสร้างใคร เมื่อไหร่ และจัดการระบบ **Auto-Recycle**
+- **`module.towers.js`**: ควบคุมป้อมปืนให้ยิงศัตรู หรือซ่อมกำแพง
+- **`module.architect.js`**: สถาปนิกอัตโนมัติ วางแผนก่อสร้างตาม Config
+- **`module.cleanup.js`**: เก็บกวาด Memory ของ Creep ที่ตายแล้ว
 
 ### Prototypes
-- **`prototype.spawn.js`**: Extends the default Spawn object to add custom methods like `createCustomCreep` (the Smart Body Builder).
+- **`prototype.spawn.js`**: ส่วนขยายของ Spawn เพื่อเพิ่มฟังก์ชัน `createCustomCreep` (ระบบสร้างร่างกายตามงบประมาณ)
 
-### Creep Roles
-- **`role.harvester.js`**: Mines energy. Prioritizes filling Spawns/Extensions > Towers > Storage. Upgrades controller if idle. *Includes Yield Logic*.
-- **`role.upgrader.js`**: Dedicated to upgrading the Room Controller.
-- **`role.builder.js`**: Constructs buildings from Construction Sites.
-- **`role.repairer.js`**: Maintains roads and containers.
-- **`role.wallRepairer.js`** / **`role.rampartRepairer.js`**: Fortifies defenses.
-- **`role.longDistance*.js`**: specialized roles for remote mining and cross-room operations.
+### Creep Roles (หน้าที่)
+- **`role.harvester.js`**: ขุดพลังงาน -> ส่ง Spawn/Extension -> ส่ง Tower -> ส่ง Storage -> อัพเกรด Controller (ถ้าว่าง) *มีระบบ Yield*
+- **`role.upgrader.js`**: อัพเกรด Room Controller อย่างเดียว
+- **`role.builder.js`**: สร้างสิ่งปลูกสร้าง
+- **`role.repairer.js`**:- ซ่อมถนนและ Container
+- **`role.wallRepairer.js`** / **`role.rampartRepairer.js`**: ซ่อมกำแพงและป้อมปราการ
 
 ---
 
-## 🚀 How it Works
+## 🚀 การทำงาน (How it Works)
 
-1. **The Loop**: Every game tick, `main.js` clears dead memory.
-2. **Role Execution**: It iterates through all creeps and executes their specific `role.*.js` logic.
-    - *Debug*: You might see `♻️ bye`, `🏃 yield`, or `⛔ stuck` bubbles above creeps indicating their status.
+1. **The Loop**: ทุกๆ Tick เกม, `main.js` จะเคลียร์ Memory ศพ
+2. **Role Execution**: สั่งงาน Creep ตามหน้าที่
+    - *สังเกต*: อาจเห็น bubble บนหัว Creep เช่น `♻️ bye`, `🏃 yield`, หรือ `⛔ stuck` บอกสถานะ
 3. **Spawn Management**:
-    - Checks if any role is below the target population defined in `config.js`.
-    - If a creep is needed, it calls `createCustomCreep` to build the best possible body.
-    - If all roles are full and energy is maxed, it checks for **Weak Creeps**. If a creep is significantly weaker than the room's potential, it marks it for **Recycling**.
-4. **Defense**: Towers automatically attack nearest enemies or heal damaged creeps.
+    - เช็กจำนวนประชากรเทียบกับ `config.js`
+    - ถ้าขาด -> สร้างใหม่แบบจัดเต็ม (Max Body)
+    - ถ้าครบ & พลังงานเหลือ -> หาตัวกากมาเชือด (Recycle) เพื่อสร้างตัวเทพ
+4. **Defense**: ป้อมปืนทำงานอัตโนมัติเมื่อมีศัตรู
 
-## 📝 Configuration
+## 📝 วิธีตั้งค่า (Configuration)
 
-Edit `config.js` to change your colony's goals:
+แก้ไฟล์ `config.js` เพื่อกำหนดเป้าหมาย:
 
 ```javascript
 module.exports = {
     rooms: {
-        'W1N1': { // Your Room Name
+        'W1N1': { // ชื่อห้องของคุณ
             population: {
                 harvester: 2,
                 upgrader: 4,
