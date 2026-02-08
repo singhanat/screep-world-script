@@ -52,5 +52,31 @@ module.exports = {
             y += 0.8;
         }
 
+        // --- GCL Display ---
+        if (room.controller.level > 0) { // Only draw excessive info on owned rooms
+            room.visual.rect(40, 15, 9, 3, {
+                fill: '#000000',
+                opacity: 0.5,
+                stroke: '#ffffff'
+            });
+
+            room.visual.text("GCL: " + Game.gcl.level, 44.5, 16.5, {
+                color: '#00eebb',
+                font: 0.8
+            });
+
+            var gclProgress = (Game.gcl.progress / Game.gcl.progressTotal) * 100;
+            room.visual.rect(41, 17, 7 * (gclProgress / 100), 0.6, {
+                fill: '#00eebb',
+                opacity: 0.8
+            });
+            room.visual.text(gclProgress.toFixed(2) + "%", 44.5, 17.5, {
+                color: '#ffffff',
+                font: 0.5,
+                stroke: '#000000',
+                strokeWidth: 0.1
+            });
+        }
+
     }
 };

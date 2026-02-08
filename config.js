@@ -23,6 +23,10 @@ module.exports = {
     // Long Distance Roles Configuration
     // Set these when you are ready to expand to neighboring rooms!
     longDistance: {
+        'W45N9': {
+            claimers: { count: 1, target: 'W45N9' },
+            builders: { count: 2, home: 'W45N9', workParts: 3 }
+        },
         /*
         // Example: Target Room Name
         'W44N8': {

@@ -110,6 +110,26 @@ module.exports = {
                     }
                 }
             }
+
+            // Claimers
+            if (ldConfig.claimers) {
+                // Check Global Control Level (GCL)
+                var ownedRooms = _.sum(Game.rooms, r => r.controller && r.controller.my);
+                if (Game.gcl.level > ownedRooms) {
+                    let count = _.sum(creeps, (c) => c.memory.role == 'claimer' && c.memory.target == targetRoom);
+                    if (count < ldConfig.claimers.count) {
+                        if (spawn.createClaimer(targetRoom) == OK) {
+                            console.log(spawn.name + " spawning Claimer for " + targetRoom);
+                            return;
+                        }
+                    }
+                } else {
+                    // Optional: Log warning periodically
+                    if (Game.time % 100 === 0) {
+                        console.log(spawn.name + ": Cannot spawn Claimer for " + targetRoom + ". GCL " + Game.gcl.level + " limit reached (" + ownedRooms + " rooms).");
+                    }
+                }
+            }
         }
 
         // 4. Auto-Recycle (Upgrade Population)
