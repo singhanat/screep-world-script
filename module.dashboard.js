@@ -1,3 +1,4 @@
+var spawnManager = require('module.spawn_manager'); // Require spawn manager
 var config = require('config');
 
 module.exports = {
@@ -37,8 +38,9 @@ module.exports = {
 
         // Creep Roles Count
         var y = 5;
-        var roomConfig = config.rooms[room.name];
-        var roles = (roomConfig && roomConfig.population) ? roomConfig.population : {};
+        // Get dynamic population target
+        var roles = spawnManager.getTargetPopulation(room);
+
         for (let role in roles) {
             let current = _.sum(Game.creeps, (c) => c.memory.role == role && c.room.name == room.name);
             let target = roles[role];

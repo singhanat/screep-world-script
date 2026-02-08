@@ -1,9 +1,9 @@
 var roleBuilder = require('role.builder');
 
 module.exports = {
-    
+
     // a function to run the logic for this role
-    run: function(creep) {
+    run: function (creep) {
         // if creep is bringing energy to a structure but has no energy left
         if (creep.memory.working == true && creep.carry.energy == 0) {
             // switch state
@@ -45,10 +45,14 @@ module.exports = {
             }
             // if not in target room
             else {
-                // find exit to target room
-                var exit = creep.room.findExitTo(creep.memory.target);
-                // move to exit
-                creep.moveTo(creep.pos.findClosestByRange(exit));
+                // border check: if on exit, move into room
+                if (creep.pos.x === 0 || creep.pos.x === 49 || creep.pos.y === 0 || creep.pos.y === 49) {
+                    creep.moveTo(25, 25);
+                    return;
+                }
+
+                // move to target room
+                creep.moveTo(new RoomPosition(25, 25, creep.memory.target), { visualizePathStyle: { stroke: '#ffaa00' } });
             }
         }
     }

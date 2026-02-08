@@ -20,11 +20,25 @@ module.exports = {
             // Exclude walls because they have way too many max hits and would keep
             // our repairers busy forever. We have to find a solution for that later.
             var structure = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-                // the second argument for findClosestByPath is an object which takes
-                // a property called filter which can be a function
-                // we use the arrow operator to define it
-                filter: (s) => s.hits < s.hitsMax && s.structureType != STRUCTURE_WALL
+                filter: (s) => (s.hits < s.hitsMax && s.structureType != STRUCTURE_WALL && s.structureType != STRUCTURE_RAMPART)
             });
+
+            // Priority 1: Critical Repairs (< 20% hits) - SAVE THE DYING!
+            var critical = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: (s) => (s.hits < s.hitsMax * 0.2) && s.structureType != STRUCTURE_WALL && s.structureType != STRUCTURE_RAMPART
+            });
+
+            // Priority 2: Containers & Roads (< 90% hits) - MAINTENANCE
+            // Containers decay, so we must repair them before they vanish
+            var maintenance = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+                filter: (s) => (s.structureType == STRUCTURE_CONTAINER || s.structureType == STRUCTURE_ROAD) && s.hits < s.hitsMax * 0.9
+            });
+
+            if (critical) {
+                structure = critical;
+            } else if (maintenance) {
+                structure = maintenance;
+            }
 
             // if we find one
             if (structure != undefined) {

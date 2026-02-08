@@ -13,9 +13,51 @@ var roleClaimer = require('role.claimer');
 var config = require('config');
 
 module.exports = {
+    getTargetPopulation: function (room) {
+        var roomConfig = config.rooms[room.name];
+        var population = {};
+
+        if (roomConfig && roomConfig.population) {
+            population = _.clone(roomConfig.population);
+        } else {
+            // DYNAMIC POPULATION LOGIC
+            // 1. Harvesters: Based on sources (approx 2 per source)
+            var sources = room.find(FIND_SOURCES);
+            population.harvester = sources.length * 2;
+
+            // 2. Upgraders: Based on Energy Status
+            // If storage is full, pump upgraders
+            if (room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 100000) {
+                population.upgrader = 3;
+            } else if (room.energyAvailable == room.energyCapacityAvailable) {
+                population.upgrader = 2;
+            } else {
+                population.upgrader = 1;
+            }
+
+            // 3. Builders: Based on Construction Sites
+            var sites = room.find(FIND_CONSTRUCTION_SITES);
+            if (sites.length > 10) {
+                population.builder = 3;
+            } else if (sites.length > 0) {
+                population.builder = 2;
+            } else {
+                population.builder = 0; // No sites, no builders (Upgraders can do small jobs if needed, or keep 1)
+            }
+
+            // 4. Repairs: Keep minimum
+            population.repairer = 1;
+            population.wallRepairer = 1;
+            population.rampartRepairer = 0;
+
+            // Override with strict defaults if panic
+            if (population.harvester < 2) population.harvester = 2;
+        }
+        return population;
+    },
+
     run: function (spawn) {
         var roomConfig = config.rooms[spawn.room.name];
-
         var energy = spawn.room.energyCapacityAvailable;
         var creeps = Game.creeps;
 
@@ -29,12 +71,16 @@ module.exports = {
         }
 
         // 2. Normal Room Population
-        if (roomConfig) {
+        var population = this.getTargetPopulation(spawn.room);
+
+        if (roomConfig || true) { // Always run dynamic if config missing
             for (let role of ['harvester', 'upgrader', 'builder', 'repairer', 'wallRepairer', 'rampartRepairer']) {
                 var count = _.sum(creeps, (c) => c.memory.role == role && c.room.name == spawn.room.name);
-                if (count < roomConfig.population[role]) {
+                var target = population[role] || 0;
+
+                if (count < target) {
                     if (spawn.createCustomCreep(energy, role) == OK) {
-                        console.log(spawn.name + " spawning " + role);
+                        console.log(spawn.name + " spawning " + role + " (Dynamic Target: " + target + ")");
                         return;
                     }
                 }
@@ -42,7 +88,16 @@ module.exports = {
         }
 
         // 2.5 Mineral Miner (Check for Extractor & RCL 6)
-        if (roomConfig && roomConfig.population.mineralMiner > 0) {
+        // We need to use the calculated population object, NOT roomConfig directly
+        // because roomConfig might be undefined or missing dynamic values
+        var targetMineralMiner = 0;
+        if (population && population.mineralMiner) {
+            targetMineralMiner = population.mineralMiner;
+        } else if (roomConfig && roomConfig.population && roomConfig.population.mineralMiner) {
+            targetMineralMiner = roomConfig.population.mineralMiner;
+        }
+
+        if (targetMineralMiner > 0) {
             // Check RCL
             if (spawn.room.controller.level >= 6) {
                 // Check Extractor
@@ -52,9 +107,10 @@ module.exports = {
 
                 if (extractors.length > 0) {
                     var count = _.sum(creeps, (c) => c.memory.role == 'mineralMiner' && c.room.name == spawn.room.name);
-                    if (count < roomConfig.population.mineralMiner) {
+
+                    if (count < targetMineralMiner) {
                         if (spawn.createCustomCreep(energy, 'mineralMiner') == OK) {
-                            console.log(spawn.name + " spawning mineralMiner");
+                            console.log(spawn.name + " spawning mineralMiner (Dynamic Target: " + targetMineralMiner + ")");
                             return;
                         }
                     }
@@ -62,71 +118,78 @@ module.exports = {
             }
         }
 
-        // 3. Long Distance Spawning (Config Driven)
-        // Check config.js for longDistance settings
+        // 3. Long Distance Spawning (Dynamic)
+        // Check config.js for longDistance settings, but allow intelligent overrides
         for (let targetRoom in config.longDistance) {
             let ldConfig = config.longDistance[targetRoom];
+            if (!ldConfig.enable) continue; // Skip if disabled
 
-            // Harvesters
-            if (ldConfig.harvesters) {
-                let count = _.sum(creeps, (c) => c.memory.role == 'longDistanceHarvester' && c.memory.target == targetRoom);
-                if (count < ldConfig.harvesters.count) {
-                    if (spawn.createLongDistanceHarvester(energy, ldConfig.harvesters.workParts, ldConfig.harvesters.home, targetRoom, ldConfig.harvesters.sourceIndex) == OK) {
-                        console.log(spawn.name + " spawning LDH for " + targetRoom);
-                        return;
-                    }
+            // Check visibility of target room (if we have a creep there)
+            let roomVisible = Game.rooms[targetRoom];
+
+            // --- 3.1 Builders: Dynamic based on Construction Sites ---
+            var builderTarget = 0;
+            if (roomVisible) {
+                var sites = roomVisible.find(FIND_CONSTRUCTION_SITES);
+                if (sites.length > 5) builderTarget = 3;
+                else if (sites.length > 0) builderTarget = 2;
+
+                // If room is ours and has spawn, let it build itself
+                if (roomVisible.controller && roomVisible.controller.my && roomVisible.find(FIND_MY_SPAWNS).length > 0) {
+                    builderTarget = 0;
                 }
+            } else {
+                // If no visibility, send 1 scout/builder to check/build initial structures
+                builderTarget = 1;
             }
 
-            // Builders
-            if (ldConfig.builders) {
+            if (builderTarget > 0) {
                 let count = _.sum(creeps, (c) => c.memory.role == 'longDistanceBuilder' && c.memory.target == targetRoom);
-                if (count < ldConfig.builders.count) {
-                    if (spawn.createLongDistanceBuilder(energy, ldConfig.builders.workParts, ldConfig.builders.home, targetRoom, 0) == OK) {
-                        console.log(spawn.name + " spawning LDB for " + targetRoom);
+                if (count < builderTarget) {
+                    if (spawn.createLongDistanceBuilder(energy, 3, spawn.room.name, targetRoom, 0) == OK) {
+                        console.log(spawn.name + " spawning LDB for " + targetRoom + " (Dynamic: " + builderTarget + ")");
                         return;
                     }
                 }
             }
 
-            // Repairers
-            if (ldConfig.repairers) {
-                let count = _.sum(creeps, (c) => c.memory.role == 'longDistanceRepairer' && c.memory.target == targetRoom);
-                if (count < ldConfig.repairers.count) {
-                    if (spawn.createLongDistanceRepairer(energy, ldConfig.repairers.workParts, ldConfig.repairers.home, targetRoom, 0) == OK) {
-                        console.log(spawn.name + " spawning LDR for " + targetRoom);
+            // --- 3.2 Harvesters: Dynamic Scavenging ---
+            // Only send if we need energy and target room has sources
+            var harvesterTarget = 0;
+            // Basic logic: Send 2 if we don't have visibility (scout/harvest) or if we see sources
+            if (!roomVisible) {
+                harvesterTarget = 1;
+            } else {
+                var sources = roomVisible.find(FIND_SOURCES);
+                harvesterTarget = sources.length; // 1 per source initially
+            }
+
+            if (harvesterTarget > 0) {
+                let count = _.sum(creeps, (c) => c.memory.role == 'longDistanceHarvester' && c.memory.target == targetRoom);
+                if (count < harvesterTarget) {
+                    if (spawn.createLongDistanceHarvester(energy, 3, spawn.room.name, targetRoom, 0) == OK) {
+                        console.log(spawn.name + " spawning LDH for " + targetRoom + " (Dynamic: " + harvesterTarget + ")");
                         return;
                     }
                 }
             }
 
-            // Attackers
-            if (ldConfig.attackers) {
-                let count = _.sum(creeps, (c) => c.memory.role == 'longDistanceAttacker' && c.memory.target == targetRoom);
-                if (count < ldConfig.attackers.count) {
-                    if (spawn.createLongDistanceAttacker(energy, targetRoom) == OK) {
-                        console.log(spawn.name + " spawning LDA for " + targetRoom);
-                        return;
-                    }
+            // --- 3.3 Claimers: Dynamic Claiming ---
+            var claimerTarget = 0;
+            // Only claim if GCL allows and not already claimed
+            var ownedRooms = _.sum(Game.rooms, r => r.controller && r.controller.my);
+            if (Game.gcl.level > ownedRooms) {
+                if (!roomVisible || (roomVisible.controller && !roomVisible.controller.my)) {
+                    claimerTarget = 1;
                 }
             }
 
-            // Claimers
-            if (ldConfig.claimers) {
-                // Check Global Control Level (GCL)
-                var ownedRooms = _.sum(Game.rooms, r => r.controller && r.controller.my);
-                if (Game.gcl.level > ownedRooms) {
-                    let count = _.sum(creeps, (c) => c.memory.role == 'claimer' && c.memory.target == targetRoom);
-                    if (count < ldConfig.claimers.count) {
-                        if (spawn.createClaimer(targetRoom) == OK) {
-                            console.log(spawn.name + " spawning Claimer for " + targetRoom);
-                            return;
-                        }
-                    }
-                } else {
-                    // Optional: Log warning periodically
-                    if (Game.time % 100 === 0) {
-                        console.log(spawn.name + ": Cannot spawn Claimer for " + targetRoom + ". GCL " + Game.gcl.level + " limit reached (" + ownedRooms + " rooms).");
+            if (claimerTarget > 0) {
+                let count = _.sum(creeps, (c) => c.memory.role == 'claimer' && c.memory.target == targetRoom);
+                if (count < claimerTarget) {
+                    if (spawn.createClaimer(targetRoom) == OK) {
+                        console.log(spawn.name + " spawning Claimer for " + targetRoom);
+                        return;
                     }
                 }
             }

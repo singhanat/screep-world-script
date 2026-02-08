@@ -6,14 +6,16 @@ module.exports = {
     rooms: {
         'W44N9': {
             // Desired population for this room
+            /*
             population: {
                 harvester: 4,
                 upgrader: 1,
-                builder: 1,
+                builder: 2,
                 repairer: 1,
                 wallRepairer: 2,
                 rampartRepairer: 0
             },
+            */
             // Structures to maintain
             walls: 100000,
             ramparts: 100000
@@ -24,10 +26,13 @@ module.exports = {
     // Set these when you are ready to expand to neighboring rooms!
     longDistance: {
         'W45N9': {
+            // Config enabled for this room, but counts are now dynamically managed
+            enable: true,
+            /*
             claimers: { count: 1, target: 'W45N9' },
             builders: { count: 2, home: 'W45N9', workParts: 3 },
-            // Add harvester to bring energy back if needed, or help startup
             harvesters: { count: 2, home: 'W44N9', sourceIndex: 0, workParts: 3 }
+            */
         },
         /*
         // Example: Target Room Name

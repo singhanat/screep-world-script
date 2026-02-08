@@ -29,6 +29,16 @@ module.exports = {
 
         // if creep is supposed to complete a constructionSite
         if (creep.memory.working == true) {
+
+            // --- SCAVENGER MODE START ---
+            // If full and in neighbor room, return HOME
+            if (creep.room.name == 'W45N9') {
+                creep.say('🏠 Home');
+                creep.moveTo(new RoomPosition(25, 25, 'W44N9'), { visualizePathStyle: { stroke: '#ffffff' } });
+                return;
+            }
+            // --- SCAVENGER MODE END ---
+
             // find closest constructionSite
             var constructionSite = creep.pos.findClosestByPath(FIND_CONSTRUCTION_SITES);
             // if one is found
@@ -52,6 +62,16 @@ module.exports = {
             if (!source) {
                 source = creep.pos.findClosestByRange(FIND_SOURCES_ACTIVE);
             }
+
+            // --- SCAVENGER MODE START ---
+            // If no active source in Home Room, go to Neighbor
+            // But verify it's not a LongDistanceBuilder who is SUPPOSED to supply target
+            if (!source && creep.room.name == 'W44N9' && !creep.memory.target) {
+                creep.say('🏃 Scavenge');
+                creep.moveTo(new RoomPosition(25, 25, 'W45N9'), { visualizePathStyle: { stroke: '#ffaa00' } });
+                return;
+            }
+            // --- SCAVENGER MODE END ---
 
             if (!source) {
                 source = creep.pos.findClosestByRange(FIND_SOURCES);
