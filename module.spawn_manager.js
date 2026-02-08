@@ -41,6 +41,27 @@ module.exports = {
             }
         }
 
+        // 2.5 Mineral Miner (Check for Extractor & RCL 6)
+        if (roomConfig && roomConfig.population.mineralMiner > 0) {
+            // Check RCL
+            if (spawn.room.controller.level >= 6) {
+                // Check Extractor
+                var extractors = spawn.room.find(FIND_STRUCTURES, {
+                    filter: (s) => s.structureType == STRUCTURE_EXTRACTOR
+                });
+
+                if (extractors.length > 0) {
+                    var count = _.sum(creeps, (c) => c.memory.role == 'mineralMiner' && c.room.name == spawn.room.name);
+                    if (count < roomConfig.population.mineralMiner) {
+                        if (spawn.createCustomCreep(energy, 'mineralMiner') == OK) {
+                            console.log(spawn.name + " spawning mineralMiner");
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         // 3. Long Distance Spawning (Config Driven)
         // Check config.js for longDistance settings
         for (let targetRoom in config.longDistance) {
@@ -91,29 +112,41 @@ module.exports = {
             }
         }
 
-
         // 4. Auto-Recycle (Upgrade Population)
+        // Only consider if:
+        // - Spawn is idle
+        // - Room is fully charged (Energy == EnergyCapacity)
+        // - We have at least RCL 2 (Capacity > 300) to ensure upgrades are meaningful
         if (!spawn.spawning && spawn.room.energyAvailable === spawn.room.energyCapacityAvailable && spawn.room.energyCapacityAvailable > 300) {
 
             // Check only every 10 ticks to save CPU
             if (Game.time % 10 !== 0) return;
 
             for (let role of ['harvester', 'upgrader', 'builder', 'repairer', 'wallRepairer']) {
+                // Get all creeps of this role in this room
                 var creepsOfRole = _.filter(creeps, (c) => c.memory.role == role && c.room.name == spawn.room.name);
 
+                // Only recycle if we have met the target population (don't reduce numbers below target)
+                // And ensure we have at least 2 creeps so we don't wipe out the workforce
                 if (roomConfig && creepsOfRole.length >= roomConfig.population[role] && creepsOfRole.length > 1) {
 
+                    // Find the weakest creep
                     var weakestCreep = _.min(creepsOfRole, (c) => {
+                        // Calculate body cost
                         return _.sum(c.body, (p) => BODYPART_COST[p.type]);
                     });
 
+                    // Calculate stats
                     var weakestCost = _.sum(weakestCreep.body, (p) => BODYPART_COST[p.type]);
                     var maxPotential = spawn.room.energyCapacityAvailable;
 
+                    // Threshold: If weakest is < 60% of potential, recycle it to make room for a big one
+                    // Harvesters might be okay with smaller bodies if we have enough linkage, 
+                    // but generally bigger is better for CPU usage.
                     if (weakestCost < maxPotential * 0.6) {
                         console.log("♻️ Auto-Recycle: Marking " + weakestCreep.name + " (" + role + ") for upgrade. Cost: " + weakestCost + "/" + maxPotential);
                         weakestCreep.memory.recycling = true;
-                        return;
+                        return; // Only recycle one at a time per room
                     }
                 }
             }

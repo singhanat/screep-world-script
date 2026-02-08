@@ -20,7 +20,8 @@ var roles = {
     longDistanceBuilder: require('role.longDistanceBuilder'),
     longDistanceUpgrader: require('role.longDistanceUpgrader'),
     longDistanceAttacker: require('role.longDistanceAttacker'),
-    claimer: require('role.claimer')
+    claimer: require('role.claimer'),
+    mineralMiner: require('role.mineralMiner')
 };
 
 module.exports.loop = function () {
@@ -88,10 +89,23 @@ module.exports.loop = function () {
         }
     }
 
+    var pixelFarmer = require('module.pixel_farmer');
+
+    // ... (existing code)
+
     // Optional: Visual Dashboard
     // Can be added here to show creep counts on screen
     if (Game.time % 10 === 0) {
         console.log('--- Status Report ---');
         console.log('Bucket: ' + Game.cpu.bucket);
+    }
+
+    // 4. Pixel Farming (End of Tick)
+    try {
+        if (Game.cpu.generatePixel) { // Check if function exists (Official Server only)
+            pixelFarmer.run();
+        }
+    } catch (e) {
+        console.log('Pixel Farm Error:', e);
     }
 };
