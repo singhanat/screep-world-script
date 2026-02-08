@@ -5,6 +5,7 @@ var cleanup = require('module.cleanup');
 var towers = require('module.towers');
 var spawnManager = require('module.spawn_manager');
 var architect = require('module.architect');
+var planner = require('module.planner');
 var dashboard = require('module.dashboard');
 
 // Load roles
@@ -67,6 +68,13 @@ module.exports.loop = function () {
             dashboard.draw(room);
         } catch (e) {
             console.log('Dashboard Error:', e);
+        }
+
+        // Run Planner (Auto-Spawn Placement)
+        try {
+            planner.run(room);
+        } catch (e) {
+            console.log('Planner Error:', e);
         }
 
         // Run Spawns

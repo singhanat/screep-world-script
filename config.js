@@ -25,7 +25,9 @@ module.exports = {
     longDistance: {
         'W45N9': {
             claimers: { count: 1, target: 'W45N9' },
-            builders: { count: 2, home: 'W45N9', workParts: 3 }
+            builders: { count: 2, home: 'W45N9', workParts: 3 },
+            // Add harvester to bring energy back if needed, or help startup
+            harvesters: { count: 2, home: 'W44N9', sourceIndex: 0, workParts: 3 }
         },
         /*
         // Example: Target Room Name
