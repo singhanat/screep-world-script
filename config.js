@@ -70,5 +70,13 @@ module.exports = {
         roads: true,      // Automatically build roads to sources and controller
         extensions: true,  // Automatically build extensions around spawn
         frequency: 100    // check every N ticks (save CPU)
+    },
+
+    // Pixel Farmer Configuration
+    pixelFarm: {
+        enabled: true,
+        minBucket: 10000, // Trigger only when full
+        minCreeps: 2,     // Safety: Don't spend bucket if room is struggling
+        logFrequency: 50 // Log warnings only every N ticks
     }
 };

@@ -79,8 +79,18 @@ module.exports = {
                 var target = population[role] || 0;
 
                 if (count < target) {
-                    if (spawn.createCustomCreep(energy, role) == OK) {
-                        console.log(spawn.name + " spawning " + role + " (Dynamic Target: " + target + ")");
+                    // 2.1 Recovery Logic
+                    // If we are critical on harvesters (less than 2), Spawn what we can afford immediately!
+                    // Don't wait for extensions to fill if we are struggling.
+                    var spawnEnergy = energy;
+                    if (role == 'harvester' && count < 2) {
+                        spawnEnergy = spawn.room.energyAvailable;
+                        // Ensure we don't spawn absolute garbage if we have a bit of buffer
+                        // But checking against 200 (min cost) is handled in createCustomCreep logic or returns error
+                    }
+
+                    if (spawn.createCustomCreep(spawnEnergy, role) == OK) {
+                        console.log(spawn.name + " spawning " + role + " (Dynamic Target: " + target + ") [Energy: " + spawnEnergy + "/" + energy + "]");
                         return;
                     }
                 }
