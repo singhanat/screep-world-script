@@ -50,6 +50,17 @@ module.exports = function () {
                     body.push(MOVE);
                 }
             }
+            else if (roleName === 'defender') {
+                // Defender: ATTACK (80) + MOVE (50) = 130
+                // Simple scaling
+                var numberOfParts = Math.floor(energy / 130);
+                numberOfParts = Math.min(numberOfParts, 10); // Max 1300 energy
+
+                for (let i = 0; i < numberOfParts; i++) {
+                    body.push(ATTACK);
+                    body.push(MOVE);
+                }
+            }
             else {
                 // Fallback: Basic Balanced
                 var numberOfParts = Math.floor(energy / 200);

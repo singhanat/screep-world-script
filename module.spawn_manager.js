@@ -53,6 +53,23 @@ module.exports = {
             // Override with strict defaults if panic
             if (population.harvester < 2) population.harvester = 2;
         }
+
+        // EMERGENCY OVERRIDE for Defenders (Applies to both Config and Dynamic)
+        var hostiles = room.find(FIND_HOSTILE_CREEPS);
+        if (hostiles.length > 0) {
+            // Count ONLY combat parts (ATTACK, RANGED_ATTACK, HEAL, WORK, CARRY, MOVE)
+            // Filter out scouts (only MOVE) if desired, but "all hostiles" is safer for now.
+
+            population.defender = hostiles.length + 1;
+
+            // Suspend other economy roles to focus on defense
+            population.upgrader = 0;
+            population.builder = 0;
+            population.repairer = 0;
+            population.wallRepairer = 0;
+            // keep harvesters
+        }
+
         return population;
     },
 
@@ -74,7 +91,21 @@ module.exports = {
         var population = this.getTargetPopulation(spawn.room);
 
         if (roomConfig || true) { // Always run dynamic if config missing
-            for (let role of ['harvester', 'upgrader', 'builder', 'repairer', 'wallRepairer', 'rampartRepairer']) {
+            // Priority list: Defender first if under attack!
+            var roleList = ['harvester', 'defender', 'upgrader', 'builder', 'repairer', 'wallRepairer', 'rampartRepairer'];
+
+            // If under attack, ensure defender is top priority (after 1 harvester)
+            if (population.defender > 0) {
+                // Check if we have at least one harvester to fuel the spawns
+                var harvesterCount = _.sum(creeps, (c) => c.memory.role == 'harvester' && c.room.name == spawn.room.name);
+                if (harvesterCount > 0) {
+                    // If we have fuel, defenders are #1 priority
+                    // We already set other roles to 0 in getTargetPopulation, so loop order matters less,
+                    // but purely for safety, we process defender early.
+                }
+            }
+
+            for (let role of roleList) {
                 var count = _.sum(creeps, (c) => c.memory.role == role && c.room.name == spawn.room.name);
                 var target = population[role] || 0;
 

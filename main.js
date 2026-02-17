@@ -22,7 +22,8 @@ var roles = {
     longDistanceUpgrader: require('role.longDistanceUpgrader'),
     longDistanceAttacker: require('role.longDistanceAttacker'),
     claimer: require('role.claimer'),
-    mineralMiner: require('role.mineralMiner')
+    mineralMiner: require('role.mineralMiner'),
+    defender: require('role.defender')
 };
 
 module.exports.loop = function () {
@@ -62,6 +63,9 @@ module.exports.loop = function () {
 
         // Run Towers
         towers.run(room);
+
+        // Run Defense (Safe Mode Check)
+        require('module.defense').run(room);
 
         // Draw Dashboard
         try {
