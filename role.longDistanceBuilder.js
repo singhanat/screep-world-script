@@ -33,6 +33,12 @@ module.exports = {
         else {
             // if in target room
             if (creep.room.name == creep.memory.target) {
+                // border check: if on exit, move into room
+                if (creep.pos.x === 0 || creep.pos.x === 49 || creep.pos.y === 0 || creep.pos.y === 49) {
+                    creep.moveTo(25, 25);
+                    return;
+                }
+
                 // find source
                 var source = creep.pos.findClosestByPath(FIND_SOURCES_ACTIVE);
                 //var source = creep.room.find(FIND_SOURCES)[creep.memory.sourceIndex];

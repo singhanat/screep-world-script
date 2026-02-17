@@ -17,6 +17,12 @@ module.exports = {
         if (creep.memory.working == true) {
             // if in home room
             if (creep.room.name == creep.memory.home) {
+                // border check: if on exit, move into room
+                if (creep.pos.x === 0 || creep.pos.x === 49 || creep.pos.y === 0 || creep.pos.y === 49) {
+                    creep.moveTo(25, 25);
+                    return;
+                }
+
                 // find closest spawn, extension or tower which is not full
                 var structure = creep.pos.findClosestByPath(FIND_MY_STRUCTURES, {
                     // the second argument for findClosestByPath is an object which takes
