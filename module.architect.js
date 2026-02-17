@@ -27,6 +27,14 @@ module.exports = {
         if (spawn.room.controller.level >= 2) {
             this.planContainers(spawn.room);
         }
+
+        // 5. Auto Storage (RCL 4)
+        if (spawn.room.controller.level >= 4) {
+            this.planStorage(spawn.room, spawn.pos);
+        }
+
+        // 6. Base Hardening (Ramparts)
+        this.planDefense(spawn.room);
     },
 
     planRoads: function (room, centerPos) {
@@ -64,6 +72,47 @@ module.exports = {
                         break; // One per source is enough usually
                     }
                 }
+            }
+        }
+    },
+
+    planStorage: function (room, centerPos) {
+        // Try to place storage near the spawn (but not ON it)
+        // Spiral out from center
+        if (room.find(FIND_MY_STRUCTURES, { filter: { structureType: STRUCTURE_STORAGE } }).length > 0) return;
+
+        for (let x = centerPos.x - 2; x <= centerPos.x + 2; x++) {
+            for (let y = centerPos.y - 2; y <= centerPos.y + 2; y++) {
+                // Must be buildable
+                if (room.getTerrain().get(x, y) === TERRAIN_MASK_WALL) continue;
+
+                // Must be empty
+                if (room.lookForAt(LOOK_STRUCTURES, x, y).length > 0) continue;
+                if (room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y).length > 0) continue;
+
+                room.createConstructionSite(x, y, STRUCTURE_STORAGE);
+                return;
+            }
+        }
+    },
+
+    planDefense: function (room) {
+        // Simple Defense: Put Ramparts over critical structures
+        // This is safer than building walls which might block paths
+        var targets = room.find(FIND_MY_STRUCTURES, {
+            filter: (s) => s.structureType == STRUCTURE_SPAWN ||
+                s.structureType == STRUCTURE_STORAGE ||
+                s.structureType == STRUCTURE_TOWER ||
+                s.structureType == STRUCTURE_CONTROLLER
+        });
+
+        for (let target of targets) {
+            // Check if rampart already exists
+            var structures = target.pos.lookFor(LOOK_STRUCTURES);
+            var hasRampart = _.some(structures, (s) => s.structureType == STRUCTURE_RAMPART);
+
+            if (!hasRampart) {
+                room.createConstructionSite(target.pos, STRUCTURE_RAMPART);
             }
         }
     },
