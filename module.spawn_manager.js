@@ -89,9 +89,15 @@ module.exports = {
                         // But checking against 200 (min cost) is handled in createCustomCreep logic or returns error
                     }
 
-                    if (spawn.createCustomCreep(spawnEnergy, role) == OK) {
+                    var result = spawn.createCustomCreep(spawnEnergy, role);
+                    if (typeof result === 'string') {
                         console.log(spawn.name + " spawning " + role + " (Dynamic Target: " + target + ") [Energy: " + spawnEnergy + "/" + energy + "]");
                         return;
+                    } else if (role == 'harvester' && count < 2) {
+                        // Log reason for failure only for critical recovery
+                        if (Game.time % 10 === 0) {
+                            console.log(spawn.name + " waiting for energy to recovery spawn Harvester. Energy: " + spawnEnergy + " / Required: ~200. Error Code: " + result);
+                        }
                     }
                 }
             }
